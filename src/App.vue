@@ -1,47 +1,74 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { ref, computed } from 'vue'
+import { PAGE_TIMELINE, PAGE_ACTIVITIES, PAGE_PROGRESS } from './constants'
+import {
+  normalizePageHash,
+  generateTimelineItems,
+  generateActivities,
+  generateActivitySelectOptions
+} from './functions'
+import TheHeader from './components/TheHeader.vue'
+import TheNav from './components/TheNav.vue'
+import TheTimeline from './pages/TheTimeline.vue'
+import TheActivities from './pages/TheActivities.vue'
+import TheProgress from './pages/TheProgress.vue'
+
+const currentPage = ref(normalizePageHash())
+
+const activities = ref(generateActivities())
+
+const timelineItems = ref(generateTimelineItems(activities.value))
+
+const activitySelectOptions = computed(() => generateActivitySelectOptions(activities.value))
+
+function goTo(page) {
+  currentPage.value = page
+}
+
+function createActivity(activity) {
+  activities.value.push(activity)
+}
+
+function deleteActivity(activity) {
+  timelineItems.value.forEach((timelineItem) => {
+    if (timelineItem.activityId === activity.id) {
+      timelineItem.activityId = null
+      timelineItem.activitySeconds = 0
+    }
+  })
+
+  activities.value.splice(activities.value.indexOf(activity), 1)
+}
+
+function setTimelineItemActivity(timelineItem, activity) {
+  timelineItem.activityId = activity.id
+}
+
+function setActivitySecondsToComplete(activity, secondsToComplete) {
+  activity.secondsToComplete = secondsToComplete
+}
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+  <TheHeader @navigate="goTo($event)" />
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
-
-  <main>
-    <TheWelcome />
+  <main class="flex flex-grow flex-col">
+    <TheTimeline
+      v-show="currentPage === PAGE_TIMELINE"
+      :timeline-items="timelineItems"
+      :activities="activities"
+      :activity-select-options="activitySelectOptions"
+      @set-timeline-item-activity="setTimelineItemActivity"
+    />
+    <TheActivities
+      v-show="currentPage === PAGE_ACTIVITIES"
+      :activities="activities"
+      @create-activity="createActivity"
+      @delete-activity="deleteActivity"
+      @set-activity-seconds-to-complete="setActivitySecondsToComplete"
+    />
+    <TheProgress v-show="currentPage === PAGE_PROGRESS" />
   </main>
+
+  <TheNav :current-page="currentPage" @navigate="goTo($event)" />
 </template>
-
-<style scoped>
-header {
-  line-height: 1.5;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-}
-</style>
